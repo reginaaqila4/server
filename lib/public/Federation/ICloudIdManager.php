@@ -57,27 +57,26 @@ interface ICloudIdManager {
 	public function removeProtocolFromUrl(string $url, bool $httpsOnly = false): string;
 
 	/**
-	 * @param string $id,
-	 * @param string $user
-	 * @param string $remote
-	 * @param ?string $displayName
-	 * @return ICloudId
+	 * @param string $id The remote cloud id
+	 * @param string $user The user id on the remote server
+	 * @param string $remote The base address of the remote server
+	 * @param ?string $displayName The displayname of the remote user
 	 *
 	 * @since 32.0.0
 	 */
 	public function createCloudId(string $id, string $user, string $remote, ?string $displayName = null): ICloudId;
 
 	/**
-	 * @param ICloudIdResolver $resolver
+	 * @param $resolver The cloud id resolver to register
 	 *
 	 * @since 32.0.0
 	 */
-	public function registerCloudIdResolver(ICloudIdResolver $resolver);
+	public function registerCloudIdResolver(ICloudIdResolver $resolver): void;
 
 	/**
-	 * @param ICloudIdResolver $resolver
+	 * @param $resolver The cloud id resolver to unregister
 	 *
 	 * @since 32.0.0
 	 */
-	public function unregisterCloudIdResolver(ICloudIdResolver $resolver);
+	public function unregisterCloudIdResolver(ICloudIdResolver $resolver): void;
 }
