@@ -105,7 +105,7 @@ class MySQL extends AbstractDatabase {
 				$query = "CREATE USER ?@'%' IDENTIFIED WITH caching_sha2_password BY ?";
 				$connection->executeUpdate($query, [$name,$password]);
 			} elseif ($connection->getDatabasePlatform() instanceof Mysql80Platform) {
-				// TODO: Remove this elseif section as soon as MySQL 8.0 is out-of-support (probably Nextcloud 33)
+				// TODO: Remove this elseif section as soon as MySQL 8.0 is out-of-support (after April 2026)
 				$query = "CREATE USER ?@'localhost' IDENTIFIED WITH mysql_native_password BY ?";
 				$connection->executeUpdate($query, [$name,$password]);
 				$query = "CREATE USER ?@'%' IDENTIFIED WITH mysql_native_password BY ?";
@@ -165,6 +165,9 @@ class MySQL extends AbstractDatabase {
 						//use the admin login data for the new database user
 						$this->dbUser = $adminUser;
 						$this->createDBUser($connection);
+						foreach($connection->getShardConnections() as $con) {
+							$this->createDBUser($con);
+						}
 
 						break;
 					} else {
