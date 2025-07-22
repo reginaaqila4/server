@@ -1,0 +1,71 @@
+#!/bin/bash
+
+echo "🛠️  Manual Nextcloud Config Fix"
+echo "==============================="
+echo ""
+echo "⚠️  MANUAL STEPS untuk memperbaiki error:"
+echo "'Configuration was not read or initialized correctly'"
+echo ""
+
+echo "🔍 Step 1: Cek status mount Google Drive"
+echo "sudo mountpoint /mnt/gdrive"
+echo "ls -la /mnt/gdrive/"
+echo ""
+
+echo "🔍 Step 2: Cek permission folder config dan data"
+echo "ls -la /mnt/gdrive/config/"
+echo "ls -la /mnt/gdrive/data/"
+echo ""
+
+echo "🔧 Step 3: Fix permission (jalankan satu per satu):"
+echo "sudo chown -R 33:33 /mnt/gdrive/config"
+echo "sudo chown -R 33:33 /mnt/gdrive/data"
+echo "sudo chmod -R 0770 /mnt/gdrive/config"
+echo "sudo chmod -R 0770 /mnt/gdrive/data"
+echo ""
+
+echo "🗑️  Step 4: Hapus config.php yang corrupt (backup dulu!):"
+echo "sudo cp /mnt/gdrive/config/config.php /mnt/gdrive/config/config.php.backup-\$(date +%Y%m%d_%H%M%S)"
+echo "sudo rm /mnt/gdrive/config/config.php"
+echo ""
+
+echo "🔄 Step 5: Restart containers:"
+echo "cd ~/nextcloud-server"  # atau lokasi docker-compose.yml Anda
+echo "docker compose down"
+echo "docker compose up -d"
+echo ""
+
+echo "⏳ Step 6: Tunggu 30 detik lalu akses web interface"
+echo "http://YOUR_SERVER_IP:8081"
+echo ""
+
+echo "📝 Step 7: Install ulang via web interface:"
+echo "- Admin user: admin"
+echo "- Admin password: (password Anda)"
+echo "- Data folder: /var/www/html/data"
+echo "- Database type: MySQL/MariaDB"
+echo "- Database host: db"
+echo "- Database name: nextcloud"
+echo "- Database user: nextclouduser"
+echo "- Database password: Nextcloud123!"
+echo ""
+
+echo "🎯 Step 8: Setelah install selesai, edit trusted domains:"
+echo "sudo nano /mnt/gdrive/config/config.php"
+echo ""
+echo "Cari bagian 'trusted_domains' dan tambahkan IP server Anda:"
+echo "'trusted_domains' =>"
+echo "array ("
+echo "  0 => 'localhost',"
+echo "  1 => '127.0.0.1:8081',"
+echo "  2 => 'YOUR_SERVER_IP:8081',"
+echo "  3 => 'YOUR_DOMAIN.COM',"
+echo "),"
+echo ""
+
+echo "🔄 Step 9: Restart sekali lagi:"
+echo "docker compose restart app"
+echo ""
+
+echo "✅ Selesai! Nextcloud seharusnya sudah bisa diakses."
+echo ""
