@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  nextcloud-app:
+    image: nextcloud:latest
+    container_name: nextcloud-server-app
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      - MYSQL_PASSWORD=Nextcloud123!
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextclouduser
+      - MYSQL_HOST=nextcloud-db
+      - REDIS_HOST=nextcloud-redis
+      - REDIS_HOST_PORT=6379
+      # PHP Optimization
+      - PHP_MEMORY_LIMIT=1G
+      - PHP_UPLOAD_MAX_FILESIZE=10G
+      - PHP_POST_MAX_SIZE=10G
+      - PHP_MAX_EXECUTION_TIME=3600
+      - PHP_MAX_INPUT_TIME=3600
+      # Nextcloud Optimization
+      - NEXTCLOUD_TRUSTED_DOMAINS=184.105.238.243 47.236.62.121 localhost
+      - OVERWRITEPROTOCOL=http
+    volumes:
+      - nextcloud_config:/var/www/html/config
+      - nextcloud_apps:/var/www/html/custom_apps
+      - nextcloud_themes:/var/www/html/themes
+      - /mnt/gdrive/nextcloud-data:/var/www/html/data
+      # PHP Configuration
+      - ./php-config/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      - ./php-config/opcache.ini:/usr/local/etc/php/conf.d/opcache.ini
+      - ./php-config/apcu.ini:/usr/local/etc/php/conf.d/apcu.ini
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    networks:
+      - nextcloud-network
+
+  nextcloud-db:
+    image: mysql:8.0
+    container_name: nextcloud-server-db
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=Nextcloud123!
+      - MYSQL_PASSWORD=Nextcloud123!
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextclouduser
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+      - ./mysql-config/my.cnf:/etc/mysql/conf.d/nextcloud.cnf
+    networks:
+      - nextcloud-network
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: nextcloud-server-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 60 1000
+    volumes:
+      - nextcloud_redis:/data
+    networks:
+      - nextcloud-network
+
+volumes:
+  nextcloud_config:
+  nextcloud_apps:
+  nextcloud_themes:
+  nextcloud_db:
+  nextcloud_redis:
+
+networks:
+  nextcloud-network:
+    driver: bridge
