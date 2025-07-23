@@ -4,15 +4,22 @@ echo "🚀 Deploying Optimized Nextcloud with Performance Enhancements..."
 
 # Stop existing containers if running
 echo "📦 Stopping existing containers..."
-docker-compose down
+docker-compose down 2>/dev/null || true
 
 # Ensure Google Drive is mounted
 echo "💾 Checking Google Drive mount..."
 if ! mountpoint -q /mnt/gdrive; then
     echo "⚠️  Google Drive not mounted. Mounting now..."
     sudo mkdir -p /mnt/gdrive
+    # Kill any existing rclone processes
+    sudo pkill -f "rclone mount" 2>/dev/null || true
+    sleep 2
+    # Mount with optimized settings
     rclone mount gdrive: /mnt/gdrive --allow-other --allow-non-empty --vfs-cache-mode writes --vfs-cache-max-size 10G --buffer-size 256M --vfs-read-chunk-size 128M --vfs-read-chunk-size-limit 2G --fast-list --daemon
     sleep 5
+    echo "✅ Google Drive mounted successfully"
+else
+    echo "✅ Google Drive already mounted"
 fi
 
 # Create data directory and set permissions
@@ -26,6 +33,9 @@ if [ ! -f /mnt/gdrive/nextcloud-data/.ncdata ]; then
     echo "📄 Creating .ncdata file..."
     echo "# Nextcloud data directory" | sudo tee /mnt/gdrive/nextcloud-data/.ncdata
     sudo chown 33:33 /mnt/gdrive/nextcloud-data/.ncdata
+    echo "✅ .ncdata file created"
+else
+    echo "✅ .ncdata file already exists"
 fi
 
 # Pull latest images
@@ -68,3 +78,7 @@ echo "📋 Database Credentials:"
 echo "   Root Password: Nextcloud123!"
 echo "   User: nextclouduser"
 echo "   Password: Nextcloud123!"
+echo ""
+echo "🔧 To check logs: docker-compose logs -f"
+echo "🔧 To restart: docker-compose restart"
+echo "🔧 To stop: docker-compose down"
