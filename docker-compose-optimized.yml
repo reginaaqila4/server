@@ -1,0 +1,125 @@
+services:
+  db:
+    image: mysql:8.0.36-debian
+    container_name: ${COMPOSE_PROJECT_NAME}-db
+    restart: always
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --innodb-buffer-pool-size=512M
+      --innodb-log-file-size=256M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+      --query-cache-type=1
+      --query-cache-size=64M
+      --max-connections=200
+      --thread-cache-size=50
+      --table-open-cache=4000
+      --performance-schema=OFF
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  redis:
+    image: redis:alpine
+    container_name: ${COMPOSE_PROJECT_NAME}-redis
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --tcp-keepalive 60
+      --timeout 300
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  app:
+    image: nextcloud:apache
+    container_name: ${COMPOSE_PROJECT_NAME}-app
+    restart: always
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - nextcloud_html:/var/www/html
+      - nextcloud_config:/var/www/html/config
+      - /mnt/gdrive/nextcloud-data:/var/www/html/data
+      - ./php-config/performance.ini:/usr/local/etc/php/conf.d/performance.ini:ro
+      - ./apache-config/performance.conf:/etc/apache2/conf-available/performance.conf:ro
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${TRUSTED_DOMAINS}
+      # Nextcloud Performance Environment Variables
+      - PHP_MEMORY_LIMIT=1G
+      - PHP_UPLOAD_LIMIT=2G
+      - APACHE_BODY_LIMIT=2G
+      - NEXTCLOUD_UPDATE=1
+      # Caching Configuration
+      - NEXTCLOUD_CONFIG_MEMCACHE_LOCAL=\\OC\\Memcache\\APCu
+      - NEXTCLOUD_CONFIG_MEMCACHE_DISTRIBUTED=\\OC\\Memcache\\Redis
+      - NEXTCLOUD_CONFIG_MEMCACHE_LOCKING=\\OC\\Memcache\\Redis
+      - NEXTCLOUD_CONFIG_REDIS_HOST=redis
+      - NEXTCLOUD_CONFIG_REDIS_PORT=6379
+      - NEXTCLOUD_CONFIG_REDIS_PASSWORD=${REDIS_PASSWORD}
+      # File System Optimization
+      - NEXTCLOUD_CONFIG_FILESYSTEM_CHECK_CHANGES=1
+      - NEXTCLOUD_CONFIG_ENABLE_PREVIEWS=true
+      - NEXTCLOUD_CONFIG_PREVIEW_MAX_X=2048
+      - NEXTCLOUD_CONFIG_PREVIEW_MAX_Y=2048
+      - NEXTCLOUD_CONFIG_PREVIEW_MAX_SCALE_FACTOR=10
+      # Performance Tweaks
+      - NEXTCLOUD_CONFIG_LOG_TYPE=file
+      - NEXTCLOUD_CONFIG_LOGLEVEL=2
+      - NEXTCLOUD_CONFIG_MAINTENANCE_WINDOW_START=1
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/status.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  nextcloud_db:
+  nextcloud_html:
+  nextcloud_config:
+  redis_data:
+
+networks:
+  default:
+    name: ${COMPOSE_PROJECT_NAME}_network
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1500
+
